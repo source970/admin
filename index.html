@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Horizon 3D Admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-locked">
+  <section class="admin-gate" id="adminGate" aria-labelledby="adminGateTitle">
+    <form class="admin-gate-card" id="adminGateForm">
+      <span class="admin-gate-icon">◆</span>
+      <small>HORIZON 3D</small>
+      <h1 id="adminGateTitle">دخول لوحة الأدمن</h1>
+      <p>أدخل رمز الإدارة للمتابعة.</p>
+      <label for="adminAccessCode">رمز الدخول</label>
+      <input id="adminAccessCode" type="password" inputmode="numeric" maxlength="4" autocomplete="one-time-code" placeholder="••••" required autofocus>
+      <span class="admin-gate-error" id="adminGateError" role="alert"></span>
+      <button type="submit">فتح لوحة الأدمن</button>
+    </form>
+  </section>
+  <main class="admin-pages">
+    <section class="admin-page active products-page" id="productsPage" data-page="products">
+      <header class="page-header">
+        <div>
+          <span class="page-kicker">إدارة المتجر</span>
+          <h1>المنتجات</h1>
+          <p>أضف منتجات المتجر وحدد تفاصيلها.</p>
+        </div>
+        <button class="add-category-button" id="addProductButton" type="button" aria-expanded="false" aria-controls="productFormCard">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>إضافة منتج</span>
+        </button>
+      </header>
+
+      <section class="category-form-card product-form-card" id="productFormCard" aria-hidden="true">
+        <div class="form-card-heading">
+          <div class="heading-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 8 4-8 4-8-4 8-4Zm-8 4v11l8 5 8-5V6M12 10v12"/></svg>
+          </div>
+          <div>
+            <h2>منتج جديد</h2>
+            <p>أدخل معلومات المنتج وصورته.</p>
+          </div>
+          <button class="close-form-button" id="closeProductForm" type="button" aria-label="إغلاق نموذج المنتج">×</button>
+        </div>
+
+        <form id="productForm">
+          <label class="field-label" for="productName">اسم المنتج</label>
+          <div class="text-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 8 4-8 4-8-4 8-4Zm-8 4v11l8 5 8-5V6"/></svg>
+            <input id="productName" name="productName" type="text" placeholder="مثال: مجسم تنين ثلاثي الأبعاد" required autocomplete="off">
+          </div>
+
+          <label class="field-label" for="productDescription">الوصف</label>
+          <div class="textarea-field">
+            <textarea id="productDescription" name="productDescription" rows="4" placeholder="اكتب وصفاً مختصراً وجميلاً للمنتج" required></textarea>
+          </div>
+
+          <label class="field-label" for="productCategory">نوع القسم</label>
+          <div class="select-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z"/></svg>
+            <select id="productCategory" name="productCategory" required>
+              <option value="" selected disabled>اختر القسم</option>
+            </select>
+            <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>
+          </div>
+
+          <label class="field-label" for="productImage">صورة المنتج</label>
+          <label class="image-upload product-image-upload" for="productImage" id="productImageUploadArea">
+            <input id="productImage" name="productImage" type="file" accept="image/png,image/jpeg,image/webp" required>
+            <img id="productImagePreview" alt="معاينة صورة المنتج">
+            <span class="upload-placeholder">
+              <span class="upload-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v5h14v-5"/></svg>
+              </span>
+              <strong>اضغط لرفع صورة المنتج</strong>
+              <small>صورة مربعة — PNG أو JPG أو WEBP</small>
+            </span>
+          </label>
+
+          <label class="field-label price-label" for="productPrice">السعر</label>
+          <div class="price-field">
+            <input id="productPrice" name="productPrice" type="text" inputmode="numeric" autocomplete="off" placeholder="0" required>
+            <span>د.ع</span>
+          </div>
+
+          <div class="form-actions">
+            <button class="save-category-button" type="submit">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              <span>حفظ المنتج</span>
+            </button>
+            <button class="cancel-category-button" id="cancelProductButton" type="button">إلغاء</button>
+          </div>
+        </form>
+      </section>
+
+      <div class="empty-categories" id="emptyProducts">
+        <span class="empty-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 8 4-8 4-8-4 8-4Zm-8 4v11l8 5 8-5V6M12 10v12"/></svg>
+        </span>
+        <h2>لا توجد منتجات بعد</h2>
+        <p>اضغط على «إضافة منتج» لإنشاء أول منتج.</p>
+      </div>
+      <div class="saved-categories" id="savedProducts" aria-live="polite"></div>
+    </section>
+    <section class="admin-page categories-page" id="categoriesPage" data-page="categories">
+      <header class="page-header">
+        <div>
+          <span class="page-kicker">إدارة المتجر</span>
+          <h1>الأقسام</h1>
+          <p>أضف أقسام المنتجات ونظّمها بسهولة.</p>
+        </div>
+        <button class="add-category-button" id="addCategoryButton" type="button" aria-expanded="false" aria-controls="categoryFormCard">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>إضافة قسم</span>
+        </button>
+      </header>
+
+      <section class="category-form-card" id="categoryFormCard" aria-hidden="true">
+        <div class="form-card-heading">
+          <div class="heading-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z"/></svg>
+          </div>
+          <div>
+            <h2>قسم جديد</h2>
+            <p>أدخل اسم القسم واختر صورته.</p>
+          </div>
+          <button class="close-form-button" id="closeCategoryForm" type="button" aria-label="إغلاق النموذج">×</button>
+        </div>
+
+        <form id="categoryForm">
+          <label class="field-label" for="categoryName">اسم القسم</label>
+          <div class="text-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z"/></svg>
+            <input id="categoryName" name="categoryName" type="text" placeholder="مثال: مجسمات وديكورات" required autocomplete="off">
+          </div>
+
+          <label class="field-label" for="categoryImage">صورة القسم</label>
+          <label class="image-upload" for="categoryImage" id="imageUploadArea">
+            <input id="categoryImage" name="categoryImage" type="file" accept="image/png,image/jpeg,image/webp" required>
+            <img id="categoryImagePreview" alt="معاينة صورة القسم">
+            <span class="upload-placeholder" id="uploadPlaceholder">
+              <span class="upload-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v5h14v-5"/></svg>
+              </span>
+              <strong>اضغط لرفع صورة</strong>
+              <small>PNG أو JPG أو WEBP</small>
+            </span>
+          </label>
+
+          <div class="form-actions">
+            <button class="save-category-button" type="submit">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              <span>حفظ القسم</span>
+            </button>
+            <button class="cancel-category-button" id="cancelCategoryButton" type="button">إلغاء</button>
+          </div>
+        </form>
+      </section>
+
+      <div class="empty-categories" id="emptyCategories">
+        <span class="empty-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z"/></svg>
+        </span>
+        <h2>لا توجد أقسام بعد</h2>
+        <p>اضغط على «إضافة قسم» لإنشاء أول قسم.</p>
+      </div>
+
+      <div class="saved-categories" id="savedCategories" aria-live="polite"></div>
+
+      <div class="admin-toast" id="adminToast" role="status" aria-live="polite">تم حفظ القسم بنجاح</div>
+
+      <div class="delete-dialog" id="deleteDialog" aria-hidden="true">
+        <div class="delete-dialog-card" role="dialog" aria-modal="true" aria-labelledby="deleteDialogTitle">
+          <span class="delete-warning-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4L12 3Zm0 6v5m0 3v.1"/></svg>
+          </span>
+          <h2 id="deleteDialogTitle">حذف القسم؟</h2>
+          <p id="deleteDialogText">هل أنت متأكد من حذف هذا القسم؟</p>
+          <div class="delete-dialog-actions">
+            <button class="delete-confirm-button" id="deleteConfirmButton" type="button">تأكيد الحذف</button>
+            <button class="delete-cancel-button" id="deleteCancelButton" type="button">تراجع</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="admin-page delivery-cost-page" id="deliveryCostPage" data-page="delivery-cost">
+      <header class="page-header">
+        <div><span class="page-kicker">إعدادات المتجر</span><h1>كلفة التوصيل</h1><p>حدد مبلغ التوصيل الذي يظهر للزبون ويُضاف تلقائيًا إلى مجموع الطلب.</p></div>
+      </header>
+      <form class="delivery-cost-card" id="deliveryCostForm">
+        <div class="delivery-cost-icon" aria-hidden="true">🚚</div>
+        <label class="field-label" for="deliveryCostInput">مبلغ التوصيل</label>
+        <div class="price-field">
+          <input id="deliveryCostInput" name="deliveryCost" type="text" inputmode="numeric" autocomplete="off" placeholder="5,000" required>
+          <span>د.ع</span>
+        </div>
+        <small class="delivery-cost-hint">يقبل أي رقم وتُضاف فواصل الآلاف تلقائيًا.</small>
+        <div class="delivery-current"><span>الكلفة الحالية في المتجر</span><b id="currentDeliveryCost">٥٬٠٠٠ د.ع</b></div>
+        <button class="delivery-save-button" type="submit"><span>حفظ كلفة التوصيل</span><b>✓</b></button>
+      </form>
+    </section>
+    <section class="admin-page orders-page" id="ordersPage" data-page="orders">
+      <header class="page-header"><div><span class="page-kicker">إدارة المتجر</span><h1>الطلبات</h1><p>الطلبات الجديدة الواردة من واجهة الزبون.</p></div></header>
+      <div class="empty-categories" id="emptyOrders"><h2>لا توجد طلبات جديدة</h2></div>
+      <div class="orders-list" id="ordersList"></div>
+    </section>
+    <section class="admin-page orders-page" id="completedOrdersPage" data-page="completed-orders">
+      <header class="page-header"><div><span class="page-kicker">إدارة المتجر</span><h1>الطلبات المكتملة</h1><p>أرشيف الطلبات التي اكتملت معالجتها.</p></div></header>
+      <div class="empty-categories" id="emptyCompletedOrders"><h2>لا توجد طلبات مكتملة</h2></div>
+      <div class="orders-list" id="completedOrdersList"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-tabs" aria-label="أقسام الإدارة">
+    <button class="tab-button active" type="button" data-tab="products" aria-label="المنتجات">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 8 4-8 4-8-4 8-4Zm-8 9 8 4 8-4M4 16l8 4 8-4"/></svg></span>
+      <small>المنتجات</small>
+    </button>
+    <button class="tab-button" type="button" data-tab="categories" aria-label="الأقسام">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z"/></svg></span>
+      <small>الأقسام</small>
+    </button>
+    <button class="tab-button" type="button" data-tab="delivery-cost" aria-label="كلفة التوصيل">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6ZM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg></span>
+      <small>كلفة التوصيل</small>
+    </button>
+    <button class="tab-button" type="button" data-tab="orders" aria-label="الطلبات">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v3h3v15H4V6h3V3Zm0 7h10M7 14h7M7 18h5"/></svg></span>
+      <small>الطلبات</small>
+    </button>
+    <button class="tab-button" type="button" data-tab="completed-orders" aria-label="الطلبات المكتملة">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 3h4v15H4V6h4l1-3Zm-1 9 3 3 6-6"/></svg></span>
+      <small>الطلبات المكتملة</small>
+    </button>
+  </nav>
+
+  <script type="module" src="script.js?v=20260802-5"></script>
+</body>
+</html>
