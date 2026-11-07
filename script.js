@@ -136,7 +136,7 @@ function renderProducts() {
       <img class="category-card-image" src="${product.image || ""}" alt="${escapeHtml(product.name)}">
       <div class="category-card-body"><h3>${escapeHtml(product.name)}</h3>
         <div class="admin-product-meta"><span class="admin-stock ${stock === 0 ? "empty" : ""}">${stock === 0 ? "نافذ" : `المخزن: ${stock}`}</span>${variants.length ? `<span class="admin-variants-count">${variants.length} ألوان</span>` : ""}${pricing.discount ? `<span class="admin-discount">خصم ${money(pricing.discount)}</span>` : ""}</div>
-        <p>${escapeHtml(product.categoryLabel)} · ${money(pricing.current)}${pricing.before ? ` <del>${money(pricing.before)}</del>` : ""}</p>
+        <p>${escapeHtml(product.categoryLabel)}${product.materialType ? ` · ${escapeHtml(product.materialType)}` : ""} · ${money(pricing.current)}${pricing.before ? ` <del>${money(pricing.before)}</del>` : ""}</p>
         <div class="category-card-actions"><button class="edit-category-button" type="button" data-edit-product aria-label="تعديل ${escapeHtml(product.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16-1 5 5-1L19 9l-4-4L4 16Zm9-9 4 4"/></svg><span>تعديل</span></button><button class="delete-category-button" type="button" data-delete-product aria-label="حذف ${escapeHtml(product.name)}">×</button></div>
       </div>
     </article>`;
@@ -569,6 +569,7 @@ productForm.addEventListener("submit", async (event) => {
       description: $("#productDescription").value.trim(),
       category: selectedCategory?.docId || "other",
       categoryLabel: selectedCategory?.name || "أخرى",
+      materialType: $("#productMaterialType").value,
       image: uploaded?.url || currentProduct?.image || fallbackVariant?.image || "",
       imagePath: uploaded?.path || currentProduct?.imagePath || fallbackVariant?.imagePath || "",
       price,
@@ -629,6 +630,7 @@ $("#savedProducts").addEventListener("click", async (event) => {
     $("#productName").value = product.name || "";
     $("#productDescription").value = product.description || "";
     $("#productCategory").value = product.category || "";
+    $("#productMaterialType").value = product.materialType || "";
     const pricing = productPricing(product);
     productPriceInput.value = priceInputFormatter.format(pricing.current);
     productDiscountInput.value = pricing.before ? priceInputFormatter.format(pricing.before) : "";
