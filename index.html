@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Horizon 3D Admin</title>
-  <link rel="stylesheet" href="style.css?v=20261107-color-variants-1">
+  <link rel="stylesheet" href="style.css?v=20261107-custom-materials-1">
 </head>
 <body class="admin-locked">
   <section class="admin-gate" id="adminGate" aria-labelledby="adminGateTitle">
@@ -75,8 +75,23 @@
               <option value="PETG">PETG</option>
               <option value="ABS">ABS</option>
               <option value="ASA">ASA</option>
+              <option value="TPU">TPU</option>
+              <option value="Like Marble">Like Marble</option>
+              <option value="Resin">Resin</option>
+              <option value="Water Wash Resin">Water Wash Resin</option>
+              <option value="Standard Resin">Standard Resin</option>
+              <option value="ABS Resin">ABS Resin</option>
+              <option value="Tough Resin">Tough Resin</option>
+              <option value="16K Resin">16K Resin</option>
             </select>
             <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>
+          </div>
+          <button class="add-material-type-button" id="addMaterialTypeButton" type="button" aria-expanded="false" aria-controls="customMaterialTypeBox"><b>＋</b><span>إضافة نوع مادة جديد</span></button>
+          <div class="custom-material-type" id="customMaterialTypeBox" hidden>
+            <input id="customMaterialTypeInput" type="text" maxlength="40" placeholder="مثال: Wood PLA" autocomplete="off">
+            <button id="saveCustomMaterialType" type="button">إضافة</button>
+            <button id="cancelCustomMaterialType" type="button">إلغاء</button>
+            <small id="customMaterialTypeError"></small>
           </div>
 
           <label class="field-label" for="productImage">الصورة الرئيسية (اختيارية عند إضافة ألوان)</label>
@@ -313,6 +328,6 @@
     </button>
   </nav>
 
-  <script type="module" src="script.js?v=20261107-material-filter-2"></script>
+  <script type="module" src="script.js?v=20261107-custom-materials-3"></script>
 </body>
 </html>

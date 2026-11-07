@@ -55,6 +55,11 @@ let deletingProductId = null;
 let deletingCategoryId = null;
 let deleteConfirmationStep = 1;
 let productVariantsDraft = [];
+const DEFAULT_MATERIAL_TYPES = [
+  "PLA", "PLA+", "PETG", "ABS", "ASA", "TPU", "Like Marble", "Resin",
+  "Water Wash Resin", "Standard Resin", "ABS Resin", "Tough Resin", "16K Resin",
+];
+const customMaterialTypes = new Set();
 
 const escapeHtml = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -361,11 +366,87 @@ const productImageUploadArea = $("#productImageUploadArea");
 const productPriceInput = $("#productPrice");
 const productDiscountInput = $("#productDiscount");
 const productStockInput = $("#productStock");
+const productMaterialTypeSelect = $("#productMaterialType");
+const customMaterialTypeBox = $("#customMaterialTypeBox");
+const customMaterialTypeInput = $("#customMaterialTypeInput");
+const customMaterialTypeError = $("#customMaterialTypeError");
 const productVariantsList = $("#productVariantsList");
 const productVariantsEmpty = $("#productVariantsEmpty");
 const deliveryCostForm = $("#deliveryCostForm");
 const deliveryCostInput = $("#deliveryCostInput");
 const priceInputFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+
+function normalizeMaterialName(value) {
+  const cleaned = String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/\s*\+\s*/g, "+")
+    .slice(0, 40);
+  return DEFAULT_MATERIAL_TYPES.find((type) => type.toLowerCase() === cleaned.toLowerCase()) || cleaned;
+}
+
+function availableMaterialTypes(selectedValue = "") {
+  const materials = new Map(DEFAULT_MATERIAL_TYPES.map((type) => [type.toLowerCase(), type]));
+  products.forEach((product) => {
+    const material = normalizeMaterialName(product.materialType);
+    if (material) materials.set(material.toLowerCase(), material);
+  });
+  customMaterialTypes.forEach((type) => materials.set(type.toLowerCase(), type));
+  const selected = normalizeMaterialName(selectedValue);
+  if (selected) materials.set(selected.toLowerCase(), selected);
+  const custom = [...materials.values()]
+    .filter((type) => !DEFAULT_MATERIAL_TYPES.some((defaultType) => defaultType.toLowerCase() === type.toLowerCase()))
+    .sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
+  return [...DEFAULT_MATERIAL_TYPES, ...custom];
+}
+
+function renderMaterialTypeOptions(selectedValue = productMaterialTypeSelect.value) {
+  const selected = normalizeMaterialName(selectedValue);
+  productMaterialTypeSelect.innerHTML = '<option value="" disabled>اختر نوع المادة</option>'
+    + availableMaterialTypes(selected).map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join("");
+  productMaterialTypeSelect.value = selected;
+  if (!selected) productMaterialTypeSelect.selectedIndex = 0;
+}
+
+function closeCustomMaterialType() {
+  customMaterialTypeBox.hidden = true;
+  customMaterialTypeInput.value = "";
+  customMaterialTypeError.textContent = "";
+  $("#addMaterialTypeButton").setAttribute("aria-expanded", "false");
+}
+
+function saveCustomMaterialType() {
+  const material = normalizeMaterialName(customMaterialTypeInput.value);
+  if (material.length < 2) {
+    customMaterialTypeError.textContent = "اكتب اسمًا من حرفين على الأقل";
+    customMaterialTypeInput.focus();
+    return;
+  }
+  const existing = availableMaterialTypes().find((type) => type.toLowerCase() === material.toLowerCase());
+  const savedMaterial = existing || material;
+  if (!existing) customMaterialTypes.add(savedMaterial);
+  renderMaterialTypeOptions(savedMaterial);
+  closeCustomMaterialType();
+  showToast(existing ? `نوع المادة «${savedMaterial}» موجود وتم اختياره` : `تمت إضافة نوع المادة «${savedMaterial}»`);
+}
+
+$("#addMaterialTypeButton").addEventListener("click", () => {
+  const willOpen = customMaterialTypeBox.hidden;
+  customMaterialTypeBox.hidden = !willOpen;
+  $("#addMaterialTypeButton").setAttribute("aria-expanded", String(willOpen));
+  customMaterialTypeError.textContent = "";
+  if (willOpen) customMaterialTypeInput.focus();
+});
+$("#saveCustomMaterialType").addEventListener("click", saveCustomMaterialType);
+$("#cancelCustomMaterialType").addEventListener("click", closeCustomMaterialType);
+customMaterialTypeInput.addEventListener("input", () => { customMaterialTypeError.textContent = ""; });
+customMaterialTypeInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    saveCustomMaterialType();
+  }
+  if (event.key === "Escape") closeCustomMaterialType();
+});
 
 function createVariantId() {
   return `color-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -504,6 +585,8 @@ function resetProductForm() {
   clearVariantDraftPreviews();
   productVariantsDraft = [];
   productForm.reset();
+  renderMaterialTypeOptions("");
+  closeCustomMaterialType();
   productDiscountInput.setCustomValidity("");
   editingProductId = null;
   productImageInput.setAttribute("required", "");
@@ -569,7 +652,7 @@ productForm.addEventListener("submit", async (event) => {
       description: $("#productDescription").value.trim(),
       category: selectedCategory?.docId || "other",
       categoryLabel: selectedCategory?.name || "أخرى",
-      materialType: $("#productMaterialType").value,
+      materialType: normalizeMaterialName(productMaterialTypeSelect.value),
       image: uploaded?.url || currentProduct?.image || fallbackVariant?.image || "",
       imagePath: uploaded?.path || currentProduct?.imagePath || fallbackVariant?.imagePath || "",
       price,
@@ -630,7 +713,7 @@ $("#savedProducts").addEventListener("click", async (event) => {
     $("#productName").value = product.name || "";
     $("#productDescription").value = product.description || "";
     $("#productCategory").value = product.category || "";
-    $("#productMaterialType").value = product.materialType || "";
+    renderMaterialTypeOptions(product.materialType || "");
     const pricing = productPricing(product);
     productPriceInput.value = priceInputFormatter.format(pricing.current);
     productDiscountInput.value = pricing.before ? priceInputFormatter.format(pricing.before) : "";
@@ -836,7 +919,11 @@ function subscribe(name, onData) {
 }
 
 subscribe("categories", (items) => { categories = items; renderCategories(); });
-subscribe("products", (items) => { products = items; renderProducts(); });
+subscribe("products", (items) => {
+  products = items;
+  renderMaterialTypeOptions(productMaterialTypeSelect.value);
+  renderProducts();
+});
 subscribe("orders", (items) => { orders = items; renderOrders(); });
 onSnapshot(doc(db, "settings", "store"), (snapshot) => {
   const savedCost = Number(snapshot.data()?.deliveryCost);
@@ -848,5 +935,6 @@ onSnapshot(doc(db, "settings", "store"), (snapshot) => {
   showToast("تعذر تحميل كلفة التوصيل");
 });
 renderCategories();
+renderMaterialTypeOptions();
 renderProducts();
 renderOrders();
