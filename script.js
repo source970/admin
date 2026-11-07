@@ -54,6 +54,7 @@ let editingProductId = null;
 let deletingProductId = null;
 let deletingCategoryId = null;
 let deleteConfirmationStep = 1;
+let productVariantsDraft = [];
 
 const escapeHtml = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -129,11 +130,12 @@ function renderProducts() {
   $("#savedProducts").innerHTML = visibleProducts.map((product) => {
     const stock = normalizeStock(product.stock);
     const pricing = productPricing(product);
+    const variants = normalizeVariants(product);
     return `
     <article class="category-card product-admin-card ${stock === 0 ? "out-of-stock" : ""}" data-product-id="${product.docId}">
       <img class="category-card-image" src="${product.image || ""}" alt="${escapeHtml(product.name)}">
       <div class="category-card-body"><h3>${escapeHtml(product.name)}</h3>
-        <div class="admin-product-meta"><span class="admin-stock ${stock === 0 ? "empty" : ""}">${stock === 0 ? "نافذ" : `المخزن: ${stock}`}</span>${pricing.discount ? `<span class="admin-discount">خصم ${money(pricing.discount)}</span>` : ""}</div>
+        <div class="admin-product-meta"><span class="admin-stock ${stock === 0 ? "empty" : ""}">${stock === 0 ? "نافذ" : `المخزن: ${stock}`}</span>${variants.length ? `<span class="admin-variants-count">${variants.length} ألوان</span>` : ""}${pricing.discount ? `<span class="admin-discount">خصم ${money(pricing.discount)}</span>` : ""}</div>
         <p>${escapeHtml(product.categoryLabel)} · ${money(pricing.current)}${pricing.before ? ` <del>${money(pricing.before)}</del>` : ""}</p>
         <div class="category-card-actions"><button class="edit-category-button" type="button" data-edit-product aria-label="تعديل ${escapeHtml(product.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16-1 5 5-1L19 9l-4-4L4 16Zm9-9 4 4"/></svg><span>تعديل</span></button><button class="delete-category-button" type="button" data-delete-product aria-label="حذف ${escapeHtml(product.name)}">×</button></div>
       </div>
@@ -156,6 +158,19 @@ $("#clearProductSearch").addEventListener("click", () => {
 function normalizeStock(value) {
   const stock = Number(value);
   return Number.isFinite(stock) && stock >= 0 ? Math.floor(stock) : 0;
+}
+
+function normalizeVariants(product) {
+  return (Array.isArray(product?.variants) ? product.variants : [])
+    .map((variant, index) => ({
+      id: String(variant?.id || `variant-${index + 1}`),
+      name: String(variant?.name || "").trim(),
+      color: /^#[0-9a-f]{6}$/i.test(String(variant?.color || "")) ? String(variant.color) : "#111111",
+      image: String(variant?.image || ""),
+      imagePath: String(variant?.imagePath || ""),
+      stock: normalizeStock(variant?.stock),
+    }))
+    .filter((variant) => variant.name && variant.image);
 }
 
 function productPricing(product) {
@@ -207,9 +222,10 @@ function orderItemCard(item) {
   const price = Number(item.price) || Number(currentProduct?.price) || 0;
   const quantity = Number(item.quantity) || 0;
   const lineTotal = Number(item.lineTotal) || price * quantity;
+  const variantLabel = item.variantName ? `<span class="order-variant"><i style="--variant-color:${escapeHtml(item.variantColor || "#111111")}"></i>${escapeHtml(item.variantName)}</span>` : "";
   return `<article class="order-item">
     ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(item.name || currentProduct?.name || "منتج")}">` : '<div class="order-item-placeholder">◇</div>'}
-    <div><small>${escapeHtml(item.categoryLabel || currentProduct?.categoryLabel || "منتج")}</small><h4>${escapeHtml(item.name || currentProduct?.name || "منتج محذوف")}</h4><p>${quantity} × ${money(price)}</p></div>
+    <div><small>${escapeHtml(item.categoryLabel || currentProduct?.categoryLabel || "منتج")}</small><h4>${escapeHtml(item.name || currentProduct?.name || "منتج محذوف")}</h4>${variantLabel}<p>${quantity} × ${money(price)}</p></div>
     <b>${money(lineTotal)}</b>
   </article>`;
 }
@@ -345,9 +361,95 @@ const productImageUploadArea = $("#productImageUploadArea");
 const productPriceInput = $("#productPrice");
 const productDiscountInput = $("#productDiscount");
 const productStockInput = $("#productStock");
+const productVariantsList = $("#productVariantsList");
+const productVariantsEmpty = $("#productVariantsEmpty");
 const deliveryCostForm = $("#deliveryCostForm");
 const deliveryCostInput = $("#deliveryCostInput");
 const priceInputFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+
+function createVariantId() {
+  return `color-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function clearVariantDraftPreviews() {
+  productVariantsDraft.forEach((variant) => {
+    if (variant.previewUrl) URL.revokeObjectURL(variant.previewUrl);
+  });
+}
+
+function syncProductStockMode() {
+  const hasVariants = productVariantsDraft.length > 0;
+  productStockInput.disabled = hasVariants;
+  productStockInput.required = !hasVariants;
+  productStockInput.closest(".stock-field")?.classList.toggle("is-calculated", hasVariants);
+  const unit = productStockInput.nextElementSibling;
+  if (unit) unit.textContent = hasVariants ? "تلقائي" : "قطعة";
+  if (hasVariants) {
+    productStockInput.value = productVariantsDraft.reduce((sum, variant) => sum + normalizeStock(variant.stock), 0);
+    productImageInput.removeAttribute("required");
+  } else if (!editingProductId || !productImagePreview.getAttribute("src")) {
+    productImageInput.setAttribute("required", "");
+  }
+}
+
+function renderProductVariantsEditor() {
+  productVariantsEmpty.hidden = productVariantsDraft.length > 0;
+  productVariantsList.innerHTML = productVariantsDraft.map((variant, index) => `
+    <article class="product-variant-row" data-variant-id="${escapeHtml(variant.id)}">
+      <div class="variant-row-head"><strong>اللون ${index + 1}</strong><button type="button" data-remove-variant aria-label="حذف اللون">×</button></div>
+      <div class="variant-fields-grid">
+        <label><span>اسم اللون</span><input type="text" data-variant-name value="${escapeHtml(variant.name)}" placeholder="مثال: أسود" required></label>
+        <label><span>درجة اللون</span><input type="color" data-variant-color value="${escapeHtml(variant.color)}" aria-label="درجة اللون"></label>
+        <label><span>الكمية</span><input type="number" data-variant-stock value="${normalizeStock(variant.stock)}" min="0" step="1" required></label>
+      </div>
+      <label class="variant-image-upload">
+        <input type="file" data-variant-file accept="image/png,image/jpeg,image/webp">
+        ${variant.previewUrl || variant.image ? `<img src="${escapeHtml(variant.previewUrl || variant.image)}" alt="صورة ${escapeHtml(variant.name || `اللون ${index + 1}`)}">` : '<span>＋ رفع صورة هذا اللون</span>'}
+      </label>
+    </article>`).join("");
+  syncProductStockMode();
+}
+
+$("#addProductVariant").addEventListener("click", () => {
+  productVariantsDraft.push({ id: createVariantId(), name: "", color: "#111111", image: "", imagePath: "", stock: 0, file: null, previewUrl: "" });
+  renderProductVariantsEditor();
+  productVariantsList.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+
+productVariantsList.addEventListener("input", (event) => {
+  const row = event.target.closest("[data-variant-id]");
+  const variant = productVariantsDraft.find((item) => item.id === row?.dataset.variantId);
+  if (!variant) return;
+  if (event.target.matches("[data-variant-name]")) variant.name = event.target.value;
+  if (event.target.matches("[data-variant-color]")) variant.color = event.target.value;
+  if (event.target.matches("[data-variant-stock]")) {
+    variant.stock = normalizeStock(event.target.value);
+    syncProductStockMode();
+  }
+});
+
+productVariantsList.addEventListener("change", (event) => {
+  if (!event.target.matches("[data-variant-file]")) return;
+  const row = event.target.closest("[data-variant-id]");
+  const variant = productVariantsDraft.find((item) => item.id === row?.dataset.variantId);
+  const file = event.target.files?.[0];
+  if (!variant || !file) return;
+  if (variant.previewUrl) URL.revokeObjectURL(variant.previewUrl);
+  variant.file = file;
+  variant.previewUrl = URL.createObjectURL(file);
+  renderProductVariantsEditor();
+});
+
+productVariantsList.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-remove-variant]");
+  if (!removeButton) return;
+  const row = removeButton.closest("[data-variant-id]");
+  const index = productVariantsDraft.findIndex((item) => item.id === row?.dataset.variantId);
+  if (index < 0) return;
+  if (productVariantsDraft[index].previewUrl) URL.revokeObjectURL(productVariantsDraft[index].previewUrl);
+  productVariantsDraft.splice(index, 1);
+  renderProductVariantsEditor();
+});
 
 function parsePriceInput(value) {
   const normalizedDigits = String(value ?? "")
@@ -399,12 +501,15 @@ function setProductFormOpen(isOpen) {
 }
 
 function resetProductForm() {
+  clearVariantDraftPreviews();
+  productVariantsDraft = [];
   productForm.reset();
   productDiscountInput.setCustomValidity("");
   editingProductId = null;
   productImageInput.setAttribute("required", "");
   productImagePreview.removeAttribute("src");
   productImageUploadArea.classList.remove("has-image");
+  renderProductVariantsEditor();
   productFormCard.querySelector("h2").textContent = "منتج جديد";
   productForm.querySelector('.save-category-button span').textContent = "حفظ المنتج";
 }
@@ -432,26 +537,45 @@ productForm.addEventListener("submit", async (event) => {
     const currentProduct = products.find((item) => item.docId === editingProductId);
     const price = parsePriceInput(productPriceInput.value);
     const oldPrice = parsePriceInput(productDiscountInput.value);
-    const stock = normalizeStock(productStockInput.value);
+    const missingVariantImage = productVariantsDraft.find((variant) => !variant.file && !variant.image);
+    if (missingVariantImage) throw new Error(`ارفع صورة للون «${missingVariantImage.name || "الجديد"}»`);
+    const emptyVariantName = productVariantsDraft.find((variant) => !String(variant.name || "").trim());
+    if (emptyVariantName) throw new Error("اكتب اسم كل لون قبل الحفظ");
     if (oldPrice > 0 && oldPrice <= price) {
       productDiscountInput.setCustomValidity("السعر قبل الخصم يجب أن يكون أعلى من السعر الحالي");
       productDiscountInput.reportValidity();
       return;
     }
     productDiscountInput.setCustomValidity("");
+    const variants = await Promise.all(productVariantsDraft.map(async (variant) => {
+      const variantUpload = variant.file ? await uploadImage(variant.file, "products") : null;
+      return {
+        id: variant.id,
+        name: String(variant.name).trim(),
+        color: variant.color,
+        image: variantUpload?.url || variant.image,
+        imagePath: variantUpload?.path || variant.imagePath || "",
+        stock: normalizeStock(variant.stock),
+      };
+    }));
+    const stock = variants.length
+      ? variants.reduce((sum, variant) => sum + variant.stock, 0)
+      : normalizeStock(productStockInput.value);
     const newImageFile = productImageInput.files?.[0];
     const uploaded = newImageFile ? await uploadImage(newImageFile, "products") : null;
+    const fallbackVariant = variants[0];
     const productData = {
       name: $("#productName").value.trim(),
       description: $("#productDescription").value.trim(),
       category: selectedCategory?.docId || "other",
       categoryLabel: selectedCategory?.name || "أخرى",
-      image: uploaded?.url || currentProduct?.image || "",
-      imagePath: uploaded?.path || currentProduct?.imagePath || "",
+      image: uploaded?.url || currentProduct?.image || fallbackVariant?.image || "",
+      imagePath: uploaded?.path || currentProduct?.imagePath || fallbackVariant?.imagePath || "",
       price,
       oldPrice: oldPrice || null,
       discount: null,
       stock,
+      variants,
     };
 
     if (editingProductId) {
@@ -459,13 +583,11 @@ productForm.addEventListener("submit", async (event) => {
         ...productData,
         updatedAt: serverTimestamp(),
       });
-      if (uploaded?.path && currentProduct?.imagePath && uploaded.path !== currentProduct.imagePath) {
-        try {
-          await deleteImage(currentProduct.imagePath);
-        } catch (imageDeleteError) {
-          console.warn("تعذر حذف صورة المنتج القديمة", imageDeleteError);
-        }
-      }
+      const retainedPaths = new Set([productData.imagePath, ...variants.map((variant) => variant.imagePath)].filter(Boolean));
+      const previousPaths = new Set([currentProduct?.imagePath, ...normalizeVariants(currentProduct).map((variant) => variant.imagePath)].filter(Boolean));
+      await Promise.all([...previousPaths].filter((path) => !retainedPaths.has(path)).map(async (path) => {
+        try { await deleteImage(path); } catch (imageDeleteError) { console.warn("تعذر حذف صورة قديمة", imageDeleteError); }
+      }));
       showToast("تم تعديل المنتج بنجاح");
     } else {
       await addDoc(collection(db, "products"), {
@@ -501,6 +623,7 @@ $("#savedProducts").addEventListener("click", async (event) => {
   if (!product) return;
 
   if (editButton) {
+    clearVariantDraftPreviews();
     productForm.reset();
     editingProductId = product.docId;
     $("#productName").value = product.name || "";
@@ -509,6 +632,7 @@ $("#savedProducts").addEventListener("click", async (event) => {
     const pricing = productPricing(product);
     productPriceInput.value = priceInputFormatter.format(pricing.current);
     productDiscountInput.value = pricing.before ? priceInputFormatter.format(pricing.before) : "";
+    productVariantsDraft = normalizeVariants(product).map((variant) => ({ ...variant, file: null, previewUrl: "" }));
     productStockInput.value = normalizeStock(product.stock);
     productImageInput.removeAttribute("required");
     if (product.image) {
@@ -520,6 +644,7 @@ $("#savedProducts").addEventListener("click", async (event) => {
     }
     productFormCard.querySelector("h2").textContent = "تعديل المنتج";
     productForm.querySelector('.save-category-button span').textContent = "حفظ التعديل";
+    renderProductVariantsEditor();
     setProductFormOpen(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
     return;
@@ -563,7 +688,8 @@ $("#productDeleteConfirm").addEventListener("click", async () => {
   confirmButton.querySelector("span").textContent = "جارٍ الحذف...";
   try {
     await deleteDoc(doc(db, "products", product.docId));
-    await deleteImage(product.imagePath);
+    const imagePaths = new Set([product.imagePath, ...normalizeVariants(product).map((variant) => variant.imagePath)].filter(Boolean));
+    await Promise.allSettled([...imagePaths].map((path) => deleteImage(path)));
     closeProductDeleteDialog();
     showToast("تم حذف المنتج بنجاح");
   } catch (error) {
@@ -629,8 +755,13 @@ async function handleOrderAction(event) {
       (Array.isArray(order.items) ? order.items : []).forEach((item) => {
         const productDocId = item.productDocId || products.find((product) => Number(product.id) === Number(item.id))?.docId || "";
         if (!productDocId) throw new Error(`تعذر العثور على المنتج: ${item.name || "منتج محذوف"}`);
-        const saved = groupedItems.get(productDocId) || { quantity: 0, name: item.name || "المنتج" };
-        saved.quantity += Math.max(0, Number(item.quantity) || 0);
+        const saved = groupedItems.get(productDocId) || { legacyQuantity: 0, variantQuantities: new Map(), name: item.name || "المنتج" };
+        const quantity = Math.max(0, Number(item.quantity) || 0);
+        if (item.variantId) {
+          saved.variantQuantities.set(String(item.variantId), (saved.variantQuantities.get(String(item.variantId)) || 0) + quantity);
+        } else {
+          saved.legacyQuantity += quantity;
+        }
         groupedItems.set(productDocId, saved);
       });
 
@@ -643,13 +774,35 @@ async function handleOrderAction(event) {
       inventory.forEach((item, index) => {
         const productSnapshot = inventorySnapshots[index];
         if (!productSnapshot.exists()) throw new Error(`المنتج غير موجود: ${item.name}`);
-        const stock = normalizeStock(productSnapshot.data().stock);
-        if (stock < item.quantity) throw new Error(`المخزون غير كافٍ للمنتج «${item.name}» — المتوفر ${stock}`);
-      });
-
-      inventory.forEach((item, index) => {
-        const stock = normalizeStock(inventorySnapshots[index].data().stock);
-        transaction.update(item.reference, { stock: stock - item.quantity, updatedAt: serverTimestamp() });
+        const productData = productSnapshot.data();
+        const variants = normalizeVariants(productData);
+        if (variants.length) {
+          item.variantQuantities.forEach((quantity, variantId) => {
+            const variant = variants.find((candidate) => candidate.id === variantId);
+            if (!variant) throw new Error(`اللون المحدد غير موجود للمنتج «${item.name}»`);
+            if (variant.stock < quantity) throw new Error(`مخزون لون «${variant.name}» غير كافٍ — المتوفر ${variant.stock}`);
+            variant.stock -= quantity;
+          });
+          let remainingLegacy = item.legacyQuantity;
+          if (variants.reduce((sum, variant) => sum + variant.stock, 0) < remainingLegacy) {
+            throw new Error(`المخزون غير كافٍ للمنتج «${item.name}»`);
+          }
+          variants.forEach((variant) => {
+            const deducted = Math.min(variant.stock, remainingLegacy);
+            variant.stock -= deducted;
+            remainingLegacy -= deducted;
+          });
+          transaction.update(item.reference, {
+            variants,
+            stock: variants.reduce((sum, variant) => sum + variant.stock, 0),
+            updatedAt: serverTimestamp(),
+          });
+          return;
+        }
+        const requested = item.legacyQuantity + [...item.variantQuantities.values()].reduce((sum, quantity) => sum + quantity, 0);
+        const stock = normalizeStock(productData.stock);
+        if (stock < requested) throw new Error(`المخزون غير كافٍ للمنتج «${item.name}» — المتوفر ${stock}`);
+        transaction.update(item.reference, { stock: stock - requested, updatedAt: serverTimestamp() });
       });
       transaction.update(orderReference, {
         status: "completed",

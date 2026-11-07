@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Horizon 3D Admin</title>
-  <link rel="stylesheet" href="style.css?v=20260803-logo-1">
+  <link rel="stylesheet" href="style.css?v=20261107-color-variants-1">
 </head>
 <body class="admin-locked">
   <section class="admin-gate" id="adminGate" aria-labelledby="adminGateTitle">
@@ -65,7 +65,7 @@
             <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>
           </div>
 
-          <label class="field-label" for="productImage">صورة المنتج</label>
+          <label class="field-label" for="productImage">الصورة الرئيسية (اختيارية عند إضافة ألوان)</label>
           <label class="image-upload product-image-upload" for="productImage" id="productImageUploadArea">
             <input id="productImage" name="productImage" type="file" accept="image/png,image/jpeg,image/webp" required>
             <img id="productImagePreview" alt="معاينة صورة المنتج">
@@ -74,7 +74,7 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v5h14v-5"/></svg>
               </span>
               <strong>اضغط لرفع صورة المنتج</strong>
-              <small>صورة مربعة — PNG أو JPG أو WEBP</small>
+              <small>يمكن تركها فارغة إذا أضفت صورة لكل لون</small>
             </span>
           </label>
 
@@ -100,6 +100,18 @@
             <input id="productStock" name="productStock" type="number" inputmode="numeric" min="0" step="1" autocomplete="off" placeholder="مثال: 10" required>
             <span>قطعة</span>
           </div>
+
+          <section class="product-variants-editor" aria-labelledby="productVariantsTitle">
+            <div class="variants-editor-head">
+              <div>
+                <h3 id="productVariantsTitle">ألوان المنتج وصورها</h3>
+                <p>أضف صورة وكمية مستقلة لكل لون. عند وجود ألوان يُحسب المخزون تلقائياً.</p>
+              </div>
+              <button id="addProductVariant" type="button"><b>＋</b><span>إضافة لون</span></button>
+            </div>
+            <div class="product-variants-list" id="productVariantsList"></div>
+            <p class="variants-empty" id="productVariantsEmpty">لا توجد ألوان مضافة. سيبقى المنتج بالصورة والمخزون العام.</p>
+          </section>
 
           <div class="form-actions">
             <button class="save-category-button" type="submit">
@@ -287,6 +299,6 @@
     </button>
   </nav>
 
-  <script type="module" src="script.js?v=20260803-dialog-1"></script>
+  <script type="module" src="script.js?v=20261107-color-variants-1"></script>
 </body>
 </html>
