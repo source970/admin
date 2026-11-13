@@ -402,7 +402,7 @@ function availableMaterialTypes(selectedValue = "") {
 
 function renderMaterialTypeOptions(selectedValue = productMaterialTypeSelect.value) {
   const selected = normalizeMaterialName(selectedValue);
-  productMaterialTypeSelect.innerHTML = '<option value="" disabled>اختر نوع المادة</option>'
+  productMaterialTypeSelect.innerHTML = '<option value="">بدون نوع مادة</option>'
     + availableMaterialTypes(selected).map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join("");
   productMaterialTypeSelect.value = selected;
   if (!selected) productMaterialTypeSelect.selectedIndex = 0;

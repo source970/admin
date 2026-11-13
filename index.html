@@ -65,11 +65,11 @@
             <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>
           </div>
 
-          <label class="field-label" for="productMaterialType">نوع مادة الطباعة</label>
+          <label class="field-label" for="productMaterialType">نوع مادة الطباعة (اختياري)</label>
           <div class="select-field">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 6v12l8 4 8-4V6l-8-4Zm0 8 8-4M12 10 4 6m8 4v12"/></svg>
-            <select id="productMaterialType" name="productMaterialType" required>
-              <option value="" selected disabled>اختر نوع المادة</option>
+            <select id="productMaterialType" name="productMaterialType">
+              <option value="" selected>بدون نوع مادة</option>
               <option value="PLA">PLA</option>
               <option value="PLA+">PLA+</option>
               <option value="PETG">PETG</option>
@@ -328,6 +328,6 @@
     </button>
   </nav>
 
-  <script type="module" src="script.js?v=20261107-custom-materials-3"></script>
+  <script type="module" src="script.js?v=20261113-optional-material-1"></script>
 </body>
 </html>
